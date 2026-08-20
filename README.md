@@ -1,8 +1,8 @@
 # GOAI residual inference
 
-Source-only inference bundle for the Xiaomi Robotics 1 RoboDojo policy with isolated residual task heads.
+Inference bundle for the Xiaomi Robotics 1 RoboDojo policy with isolated residual task heads.
 
-This repository intentionally contains no model weights, base checkpoints, processor files, datasets, videos, logs, or credentials. The runtime requires those artifacts to be supplied locally and validates the residual checkpoint SHA256 before loading it.
+The two small residual checkpoints used by this runtime are included under `checkpoints/`. The large Xiaomi base model, Qwen3-VL processor, datasets, videos, logs, and credentials are intentionally excluded. The runtime validates the residual checkpoint SHA256 before loading it.
 
 ## Checkpoints
 
@@ -10,8 +10,8 @@ The two supported checkpoint types use the same inference implementation:
 
 | Type | Purpose | SHA256 |
 | --- | --- | --- |
-| `goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt` | Full 12-task residual bank with `*_random` task aliases and task routing metadata | `7daf3f9f9f0542b55caaa255b3c83fc52433b0cf2c22f96a901c5d771e10dca2` |
-| `goai-composite-residual-eval-v2.pt` | Evaluation-only composite route; residuals are enabled only for the selected evidence-backed tasks and other tasks fall back to the Xiaomi base policy | `f2b94cf1872885bcc3fb9d501b1949e03bbdfbb7c1e7feb047d99e1c4d51cfb3` |
+| `checkpoints/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt` | Full 12-task residual bank with `*_random` task aliases and task routing metadata | `7daf3f9f9f0542b55caaa255b3c83fc52433b0cf2c22f96a901c5d771e10dca2` |
+| `checkpoints/goai-composite-residual-eval-v2.pt` | Evaluation-only composite route; residuals are enabled only for the selected evidence-backed tasks and other tasks fall back to the Xiaomi base policy | `f2b94cf1872885bcc3fb9d501b1949e03bbdfbb7c1e7feb047d99e1c4d51cfb3` |
 
 The composite checkpoint is not a separate neural inference branch. Its `task_routes` and `composite_policy` metadata are consumed by the same task-bank loader.
 
@@ -45,14 +45,15 @@ tools/start_policy_task.sh                                portable server launch
 
 ## External prerequisites
 
-Provide the following locally; do not commit them:
+Provide the following large external artifacts locally; do not commit them:
 
 - Xiaomi base model directory, supplied through `GOAI_BASE_MODEL`.
 - Qwen3-VL processor directory, supplied through `GOAI_PROCESSOR`.
-- One of the two residual checkpoint files and its exact SHA256.
 - The Xiaomi inference environment, including PyTorch/CUDA, Transformers, Pillow, SciPy, OpenCV, PyYAML, WebSockets, and the Xiaomi model dependencies such as `liger-kernel`.
 
-The source was extracted from the running environment under `/root/autodl-tmp/xiaomi-mibot` and the live XPolicyLab checkout. The repository does not attempt to download model artifacts or silently substitute a different checkpoint.
+The residual checkpoint files are included in `checkpoints/`; verify their exact SHA256 before deployment.
+
+The source was extracted from the running environment under `/root/autodl-tmp/xiaomi-mibot` and the live XPolicyLab checkout. The repository does not attempt to download the large model artifacts or silently substitute a different checkpoint.
 
 ## Reproduce from a clone
 
@@ -89,12 +90,12 @@ print("torch:", torch.__version__, "cuda:", torch.cuda.is_available())
 PY
 ```
 
-### 2. Put a residual checkpoint on the machine and verify it
+### 2. Verify the included residual checkpoint
 
-The checkpoint is supplied separately from this repository. Verify the exact file before starting the server:
+The checkpoint files are already present after cloning. Verify the exact file before starting the server:
 
 ```bash
-sha256sum /path/to/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt
+sha256sum checkpoints/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt
 ```
 
 The output must match the SHA256 listed in the [Checkpoint](#checkpoints) table. A mismatch causes startup to fail closed.
@@ -108,7 +109,7 @@ export GOAI_PYTHON=/path/to/xiaomi-mibot/bin/python
 
 bash tools/start_policy_task.sh \
   stack_bowls_random \
-  /path/to/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt \
+  checkpoints/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt \
   7daf3f9f9f0542b55caaa255b3c83fc52433b0cf2c22f96a901c5d771e10dca2 \
   6000 0
 ```
@@ -128,7 +129,7 @@ screen -dmS goai-stack-bowls bash -lc '
   export GOAI_PYTHON=/path/to/xiaomi-mibot/bin/python
   bash tools/start_policy_task.sh \
     stack_bowls_random \
-    /path/to/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt \
+    checkpoints/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt \
     7daf3f9f9f0542b55caaa255b3c83fc52433b0cf2c22f96a901c5d771e10dca2 \
     6000 0
 '
@@ -137,7 +138,7 @@ screen -dmS goai-stack-bowls bash -lc '
 For the composite evaluation checkpoint, replace the checkpoint path and SHA256 with:
 
 ```text
-/path/to/goai-composite-residual-eval-v2.pt
+checkpoints/goai-composite-residual-eval-v2.pt
 f2b94cf1872885bcc3fb9d501b1949e03bbdfbb7c1e7feb047d99e1c4d51cfb3
 ```
 

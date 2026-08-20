@@ -1,4 +1,4 @@
-# Model and checkpoint artifacts: never publish these.
+# Model and checkpoint artifacts: ignored by default unless explicitly allowlisted below.
 *.pt
 *.pth
 *.ckpt
@@ -16,6 +16,10 @@
 /hf-cache/
 /logs/
 /videos/
+
+# The two small residual checkpoints are intentionally versioned.
+!/checkpoints/
+!/checkpoints/*.pt
 *.mp4
 *.npz
 *.npy
