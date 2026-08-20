@@ -54,7 +54,52 @@ Provide the following locally; do not commit them:
 
 The source was extracted from the running environment under `/root/autodl-tmp/xiaomi-mibot` and the live XPolicyLab checkout. The repository does not attempt to download model artifacts or silently substitute a different checkpoint.
 
-## Start a policy server
+## Reproduce from a clone
+
+### 1. Clone the source and prepare the runtime
+
+```bash
+git clone https://github.com/CPhoenixW/goai.git
+cd goai
+```
+
+Use the same Xiaomi inference environment that contains the base-model dependencies. A known-good server layout used by this project was:
+
+```text
+GOAI_PYTHON=/root/autodl-tmp/xiaomi-mibot/bin/python
+GOAI_BASE_MODEL=/root/autodl-tmp/goai-residual-migration-20260818/exact_base/RoboDojo-sim-arx_x5-ee-0
+GOAI_PROCESSOR=/root/autodl-tmp/qwen3-vl-4b
+```
+
+The repository does not recreate that environment or download the large Xiaomi/Qwen artifacts. Before starting, verify the selected Python can import the inference dependencies:
+
+```bash
+"${GOAI_PYTHON}" - <<'PY'
+import cv2
+import scipy
+import torch
+import transformers
+import websockets
+import yaml
+from PIL import Image
+import liger_kernel
+
+print("inference dependencies: OK")
+print("torch:", torch.__version__, "cuda:", torch.cuda.is_available())
+PY
+```
+
+### 2. Put a residual checkpoint on the machine and verify it
+
+The checkpoint is supplied separately from this repository. Verify the exact file before starting the server:
+
+```bash
+sha256sum /path/to/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt
+```
+
+The output must match the SHA256 listed in the [Checkpoint](#checkpoints) table. A mismatch causes startup to fail closed.
+
+### 3. Start one task-specific policy server
 
 ```bash
 export GOAI_BASE_MODEL=/path/to/RoboDojo-sim-arx_x5-ee-0
@@ -68,12 +113,41 @@ bash tools/start_policy_task.sh \
   6000 0
 ```
 
+The arguments after the script are:
+
+```text
+TASK CHECKPOINT CHECKPOINT_SHA256 PORT GPU_ID
+```
+
+The server binds to `127.0.0.1` by default, which is appropriate when RoboDojo reaches it through a local tunnel or the evaluation host. For a long-running process, use the host's process supervisor or a terminal manager such as `screen`:
+
+```bash
+screen -dmS goai-stack-bowls bash -lc '
+  export GOAI_BASE_MODEL=/path/to/RoboDojo-sim-arx_x5-ee-0
+  export GOAI_PROCESSOR=/path/to/qwen3-vl-4b
+  export GOAI_PYTHON=/path/to/xiaomi-mibot/bin/python
+  bash tools/start_policy_task.sh \
+    stack_bowls_random \
+    /path/to/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt \
+    7daf3f9f9f0542b55caaa255b3c83fc52433b0cf2c22f96a901c5d771e10dca2 \
+    6000 0
+'
+```
+
 For the composite evaluation checkpoint, replace the checkpoint path and SHA256 with:
 
 ```text
 /path/to/goai-composite-residual-eval-v2.pt
 f2b94cf1872885bcc3fb9d501b1949e03bbdfbb7c1e7feb047d99e1c4d51cfb3
 ```
+
+For a second task, start another server with a different port and `TASK` value. The same checkpoint file can be shared by multiple processes, but each process selects one task route at startup.
+
+### 4. Connect the RoboDojo evaluator
+
+This repository provides the policy server and adapter. The RoboDojo evaluator is a separate checkout. Point its Policy Server client at the running WebSocket endpoint and keep `action_type=ee`, the task name, and the checkpoint route consistent with the local server. For the official smoke test, run the evaluator's `scripts/robodojo.sh smoke` command with `--dimension generalization`; the evaluator sends observations to this server and consumes the returned action chunks.
+
+A server process reaching `Model loaded` and printing a task-bank route is the expected readiness signal. The startup log should identify the raw and canonical task names and whether the residual route is enabled. If the route is disabled, the server intentionally returns the exact Xiaomi base action.
 
 Use the official RoboDojo task name. Random layouts are normalized by the runtime:
 
