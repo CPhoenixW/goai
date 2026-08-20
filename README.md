@@ -41,6 +41,7 @@ XPolicyLab/policy/Xiaomi_Robotics_1/xiaomi_robotics_1/src/ Xiaomi VLA model impl
 residual_tail/model.py                                    residual network architecture
 residual_tail/task_bank_runtime.py                        isolated task-head loader
 tools/start_policy_task.sh                                portable server launcher
+tools/start_goai.sh                                       one-command verify/download and launcher
 ```
 
 ## External prerequisites
@@ -100,7 +101,28 @@ sha256sum checkpoints/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt
 
 The output must match the SHA256 listed in the [Checkpoint](#checkpoints) table. A mismatch causes startup to fail closed.
 
-### 3. Start one task-specific policy server
+### 3. One-command start
+
+`tools/start_goai.sh` checks the local base model, processor, Python dependencies, and residual checkpoint before starting the WebSocket policy server. If the selected residual checkpoint is missing, it downloads it from this private repository using `GH_TOKEN`, `GITHUB_TOKEN`, or the current `gh auth token`, then verifies the SHA256. Existing mismatched files are not overwritten unless `GOAI_REDOWNLOAD_CHECKPOINT=1` is set.
+
+```bash
+export GOAI_BASE_MODEL=/path/to/RoboDojo-sim-arx_x5-ee-0
+export GOAI_PROCESSOR=/path/to/qwen3-vl-4b
+export GOAI_PYTHON=/path/to/xiaomi-mibot/bin/python
+
+bash tools/start_goai.sh stack_bowls_random
+```
+
+Useful overrides:
+
+```bash
+GOAI_CHECKPOINT_KIND=composite GOAI_PORT=6001 GOAI_GPU_ID=1 \
+  bash tools/start_goai.sh stack_bowls_random
+```
+
+The script does not download the large Xiaomi base model or Qwen3-VL processor; those must already exist locally. Run `bash tools/start_goai.sh --help` to see all options.
+
+### 4. Start one task-specific policy server manually
 
 ```bash
 export GOAI_BASE_MODEL=/path/to/RoboDojo-sim-arx_x5-ee-0
@@ -144,7 +166,7 @@ f2b94cf1872885bcc3fb9d501b1949e03bbdfbb7c1e7feb047d99e1c4d51cfb3
 
 For a second task, start another server with a different port and `TASK` value. The same checkpoint file can be shared by multiple processes, but each process selects one task route at startup.
 
-### 4. Connect the RoboDojo evaluator
+### 5. Connect the RoboDojo evaluator
 
 This repository provides the policy server and adapter. The RoboDojo evaluator is a separate checkout. Point its Policy Server client at the running WebSocket endpoint and keep `action_type=ee`, the task name, and the checkpoint route consistent with the local server. For the official smoke test, run the evaluator's `scripts/robodojo.sh smoke` command with `--dimension generalization`; the evaluator sends observations to this server and consumes the returned action chunks.
 
