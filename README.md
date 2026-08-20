@@ -4,6 +4,16 @@ Inference bundle for the Xiaomi Robotics 1 RoboDojo policy with isolated residua
 
 The two small residual checkpoints used by this runtime are included under `checkpoints/`. The large Xiaomi base model, Qwen3-VL processor, datasets, videos, logs, and credentials are intentionally excluded. The runtime validates the residual checkpoint SHA256 before loading it.
 
+## Competition context
+
+- **Direction:** Direction 1 — General bimanual collaborative manipulation capability test（通用双臂协作操作能力测试）
+- **Team:** ICECREAM
+- **Members:** 王奕涵、黄迦南、葛馨婷
+- **Challenge platform and scope:** X-Eval simulation/real integrated evaluation, targeting VLA/WAM-style embodied manipulation policies for 12 simulated tasks and 6 real-robot manipulation tasks.
+- **Optimization dimensions:** task success rate, generalization, execution efficiency, and robustness.
+
+This repository currently provides the Xiaomi Robotics 1 residual inference and RoboDojo simulation-side evidence. The fold-clothes videos and A/B metrics below are simulation results; they should not be interpreted as completed results for the six real-robot tasks.
+
 ## Checkpoints
 
 The two supported checkpoint types use the same inference implementation:
