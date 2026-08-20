@@ -197,6 +197,15 @@ Observed uplift: **+25 percentage points** in overall success rate and **+25 poi
 
 The table was produced by evaluating the source `fold_semantic_step800_residual_gate` checkpoint directly before packaging it into the task bank. It is evidence for the embedded fold head, but is not a fresh end-to-end A/B evaluation that loads the packaged `isolated.pt` file itself. Do not extrapolate this uplift to all 12 tasks.
 
+## Submission materials
+
+- [附件 A：技术方案与 Demo 说明](docs/附件A_技术方案与Demo说明.md)
+- [附件 B：项目一页纸](docs/附件B_项目一页纸.md)
+- [叠衣服 ideal 成功视频证据](evidence/fold_clothes/ideal/seed_0/)
+- [叠衣服 random 成功视频证据](evidence/fold_clothes/random/seed_0/)
+
+Each successful episode includes head, left-wrist, and right-wrist camera videos. The repository contains only the successful evidence clips; failed clips and raw evaluation logs are not included.
+
 ## Important limitations
 
 - `composite-eval-v2` is marked evaluation-only and is not deployment authorization by itself.

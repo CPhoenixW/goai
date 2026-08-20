@@ -21,6 +21,9 @@
 !/checkpoints/
 !/checkpoints/*.pt
 *.mp4
+!/evidence/
+!/evidence/fold_clothes/
+!/evidence/fold_clothes/**/*.mp4
 *.npz
 *.npy
 
