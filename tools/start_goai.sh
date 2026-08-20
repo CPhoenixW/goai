@@ -7,9 +7,9 @@ set -Eeuo pipefail
 REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 DEFAULT_REPO="CPhoenixW/goai"
 DEFAULT_REF="main"
-DEFAULT_BANK="goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt"
+DEFAULT_BANK="isolated.pt"
 DEFAULT_BANK_SHA="7daf3f9f9f0542b55caaa255b3c83fc52433b0cf2c22f96a901c5d771e10dca2"
-DEFAULT_COMPOSITE="goai-composite-residual-eval-v2.pt"
+DEFAULT_COMPOSITE="composite.pt"
 DEFAULT_COMPOSITE_SHA="f2b94cf1872885bcc3fb9d501b1949e03bbdfbb7c1e7feb047d99e1c4d51cfb3"
 DEFAULT_PYTHON="/root/autodl-tmp/xiaomi-mibot/bin/python"
 DEFAULT_BASE_MODEL="/root/autodl-tmp/goai-residual-migration-20260818/exact_base/RoboDojo-sim-arx_x5-ee-0"

@@ -10,8 +10,8 @@ The two supported checkpoint types use the same inference implementation:
 
 | Type | Purpose | SHA256 |
 | --- | --- | --- |
-| `checkpoints/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt` | Full 12-task residual bank with `*_random` task aliases and task routing metadata | `7daf3f9f9f0542b55caaa255b3c83fc52433b0cf2c22f96a901c5d771e10dca2` |
-| `checkpoints/goai-composite-residual-eval-v2.pt` | Evaluation-only composite route; residuals are enabled only for the selected evidence-backed tasks and other tasks fall back to the Xiaomi base policy | `f2b94cf1872885bcc3fb9d501b1949e03bbdfbb7c1e7feb047d99e1c4d51cfb3` |
+| `checkpoints/isolated.pt` | Full 12-task residual bank with `*_random` task aliases and task routing metadata | `7daf3f9f9f0542b55caaa255b3c83fc52433b0cf2c22f96a901c5d771e10dca2` |
+| `checkpoints/composite.pt` | Evaluation-only composite route; residuals are enabled only for the selected evidence-backed tasks and other tasks fall back to the Xiaomi base policy | `f2b94cf1872885bcc3fb9d501b1949e03bbdfbb7c1e7feb047d99e1c4d51cfb3` |
 
 The composite checkpoint is not a separate neural inference branch. Its `task_routes` and `composite_policy` metadata are consumed by the same task-bank loader.
 
@@ -96,7 +96,7 @@ PY
 The checkpoint files are already present after cloning. Verify the exact file before starting the server:
 
 ```bash
-sha256sum checkpoints/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt
+sha256sum checkpoints/isolated.pt
 ```
 
 The output must match the SHA256 listed in the [Checkpoint](#checkpoints) table. A mismatch causes startup to fail closed.
@@ -131,7 +131,7 @@ export GOAI_PYTHON=/path/to/xiaomi-mibot/bin/python
 
 bash tools/start_policy_task.sh \
   stack_bowls_random \
-  checkpoints/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt \
+  checkpoints/isolated.pt \
   7daf3f9f9f0542b55caaa255b3c83fc52433b0cf2c22f96a901c5d771e10dca2 \
   6000 0
 ```
@@ -151,7 +151,7 @@ screen -dmS goai-stack-bowls bash -lc '
   export GOAI_PYTHON=/path/to/xiaomi-mibot/bin/python
   bash tools/start_policy_task.sh \
     stack_bowls_random \
-    checkpoints/goai-12task-isolated-residual-bank-v1-taskmatch-v2.pt \
+    checkpoints/isolated.pt \
     7daf3f9f9f0542b55caaa255b3c83fc52433b0cf2c22f96a901c5d771e10dca2 \
     6000 0
 '
@@ -160,7 +160,7 @@ screen -dmS goai-stack-bowls bash -lc '
 For the composite evaluation checkpoint, replace the checkpoint path and SHA256 with:
 
 ```text
-checkpoints/goai-composite-residual-eval-v2.pt
+checkpoints/composite.pt
 f2b94cf1872885bcc3fb9d501b1949e03bbdfbb7c1e7feb047d99e1c4d51cfb3
 ```
 
