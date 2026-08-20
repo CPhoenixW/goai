@@ -182,6 +182,21 @@ stack_blocks_random -> stack_blocks
 
 Unknown tasks fail closed. A disabled route returns the exact Xiaomi base action rather than guessing another task head.
 
+## Evaluation evidence
+
+The historical `fold_clothes` A/B evaluation shows a positive effect from the residual gate used by the isolated task bank:
+
+| Configuration | Ideal (2 runs) | Random (2 runs) | Overall (4 runs) |
+| --- | ---: | ---: | ---: |
+| Xiaomi base | 50% success, score 60 | 0% success, score 0 | 25% success, mean score 30 |
+| `fold_semantic_step800_residual_gate` | 50% success, score 60 | 50% success, score 50 | 50% success, mean score 55 |
+
+Observed uplift: **+25 percentage points** in overall success rate and **+25 points** in mean score. In the random setting, success rate increased by **+50 percentage points**. The ideal setting did not improve.
+
+`isolated.pt` contains the corresponding `fold_clothes` residual head. Its embedded source checkpoint SHA256 is `a4f6e6e78bfb25b46763bba7584ece9708bfb3bd49a6a9fbd3663368663a9354`, and the route is marked `evaluation_only=true` and `deployment_enabled=false`.
+
+The table was produced by evaluating the source `fold_semantic_step800_residual_gate` checkpoint directly before packaging it into the task bank. It is evidence for the embedded fold head, but is not a fresh end-to-end A/B evaluation that loads the packaged `isolated.pt` file itself. Do not extrapolate this uplift to all 12 tasks.
+
 ## Important limitations
 
 - `composite-eval-v2` is marked evaluation-only and is not deployment authorization by itself.
