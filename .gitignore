@@ -1,0 +1,39 @@
+# Model and checkpoint artifacts: never publish these.
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+
+# Local model/data/runtime material.
+/checkpoints/
+/models/
+/weights/
+/datasets/
+/data/
+/cache/
+/hf-cache/
+/logs/
+/videos/
+*.mp4
+*.npz
+*.npy
+
+# Python and local tooling.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Local configuration and secrets.
+.env
+.env.*
+*.pem
+*.key
+*secret*
+*password*
