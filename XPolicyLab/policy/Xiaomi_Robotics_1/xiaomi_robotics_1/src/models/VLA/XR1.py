@@ -180,13 +180,17 @@ class XR1(nn.Module):
         new_values = torch.zeros_like(new_keys)
         new_position_ids = torch.zeros((3, action_bs, max_length), device=position_ids.device, dtype=position_ids.dtype)
         new_attention_mask = torch.zeros((action_bs, max_length), device=all_keys.device, dtype=torch.int)
+        if all_keys.size(1) != action_bs:
+            raise ValueError(
+                f"Expected VLM cache batch {action_bs}, got {all_keys.size(1)}"
+            )
         for idx in range(action_bs):
             start = int(action_segments[idx, 0].item())
             length = int(seq_len[idx].item())
             end = start + length
-            new_keys[:, idx, :, :length] = all_keys[:, 0, :, start:end]
-            new_values[:, idx, :, :length] = all_values[:, 0, :, start:end]
-            new_position_ids[:, idx, :length] = position_ids[:, 0, start:end]
+            new_keys[:, idx, :, :length] = all_keys[:, idx, :, start:end]
+            new_values[:, idx, :, :length] = all_values[:, idx, :, start:end]
+            new_position_ids[:, idx, :length] = position_ids[:, idx, start:end]
             new_attention_mask[idx, :length] = 1
 
         return list(zip(new_keys, new_values)), new_position_ids, new_attention_mask

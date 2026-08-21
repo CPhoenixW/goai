@@ -2,7 +2,7 @@
 
 Inference bundle for the Xiaomi Robotics 1 RoboDojo policy with isolated residual task heads.
 
-The two small residual checkpoints used by this runtime are included under `checkpoints/`. The large Xiaomi base model, Qwen3-VL processor, datasets, videos, logs, and credentials are intentionally excluded. The runtime validates the residual checkpoint SHA256 before loading it.
+The two small residual checkpoints used by this runtime are included under `checkpoints/`. The large Xiaomi base model and Qwen3-VL processor are local artifacts under `checkpoints/Xiaomi_Robotics_1/` and `models/qwen3-vl-4b/` in the prepared PC deployment; they are intentionally excluded from Git. RoboDojo datasets and evaluation resources are not required by this inference bundle. The runtime validates the residual checkpoint SHA256 before loading it.
 
 ## Competition context
 
@@ -58,13 +58,13 @@ tools/start_goai.sh                                       one-command verify/dow
 
 Provide the following large external artifacts locally; do not commit them:
 
-- Xiaomi base model directory, supplied through `GOAI_BASE_MODEL`.
-- Qwen3-VL processor directory, supplied through `GOAI_PROCESSOR`.
+- Xiaomi base model directory, supplied through `GOAI_BASE_MODEL` (defaults to the repo-relative RoboDojo checkpoint path).
+- Qwen3-VL processor directory, supplied through `GOAI_PROCESSOR` (defaults to `models/qwen3-vl-4b`).
 - The Xiaomi inference environment, including PyTorch/CUDA, Transformers, Pillow, SciPy, OpenCV, PyYAML, WebSockets, and the Xiaomi model dependencies such as `liger-kernel`.
 
 The residual checkpoint files are included in `checkpoints/`; verify their exact SHA256 before deployment.
 
-The source was extracted from the running environment under `/root/autodl-tmp/xiaomi-mibot` and the live XPolicyLab checkout. The repository does not attempt to download the large model artifacts or silently substitute a different checkpoint.
+The source was extracted from the running environment under `/root/autodl-tmp/xiaomi-mibot` and the live XPolicyLab checkout. The launchers resolve relative artifact paths against the repository root and never silently substitute a different checkpoint.
 
 ## Reproduce from a clone
 
@@ -75,12 +75,12 @@ git clone https://github.com/CPhoenixW/goai.git
 cd goai
 ```
 
-Use the same Xiaomi inference environment that contains the base-model dependencies. A known-good server layout used by this project was:
+Use a Python installation that contains the base-model dependencies. The launcher does not create a virtual environment. A portable repo-relative server layout is:
 
 ```text
-GOAI_PYTHON=/root/autodl-tmp/xiaomi-mibot/bin/python
-GOAI_BASE_MODEL=/root/autodl-tmp/goai-residual-migration-20260818/exact_base/RoboDojo-sim-arx_x5-ee-0
-GOAI_PROCESSOR=/root/autodl-tmp/qwen3-vl-4b
+GOAI_PYTHON=/usr/bin/python3
+GOAI_BASE_MODEL=checkpoints/Xiaomi_Robotics_1/ckpt/RoboDojo/Xiaomi_Robotics_1/RoboDojo-sim-arx_x5-ee-0
+GOAI_PROCESSOR=models/qwen3-vl-4b
 ```
 
 The repository does not recreate that environment or download the large Xiaomi/Qwen artifacts. Before starting, verify the selected Python can import the inference dependencies:
@@ -116,11 +116,10 @@ The output must match the SHA256 listed in the [Checkpoint](#checkpoints) table.
 `tools/start_goai.sh` checks the local base model, processor, Python dependencies, and residual checkpoint before starting the WebSocket policy server. If the selected residual checkpoint is missing, it downloads it from this private repository using `GH_TOKEN`, `GITHUB_TOKEN`, or the current `gh auth token`, then verifies the SHA256. Existing mismatched files are not overwritten unless `GOAI_REDOWNLOAD_CHECKPOINT=1` is set.
 
 ```bash
-export GOAI_BASE_MODEL=/path/to/RoboDojo-sim-arx_x5-ee-0
-export GOAI_PROCESSOR=/path/to/qwen3-vl-4b
-export GOAI_PYTHON=/path/to/xiaomi-mibot/bin/python
-
-bash tools/start_goai.sh stack_bowls_random
+GOAI_PYTHON=/usr/bin/python3 \
+GOAI_BASE_MODEL=checkpoints/Xiaomi_Robotics_1/ckpt/RoboDojo/Xiaomi_Robotics_1/RoboDojo-sim-arx_x5-ee-0 \
+GOAI_PROCESSOR=models/qwen3-vl-4b \
+  bash tools/start_goai.sh stack_bowls_random
 ```
 
 Useful overrides:
@@ -130,7 +129,20 @@ GOAI_CHECKPOINT_KIND=composite GOAI_PORT=6001 GOAI_GPU_ID=1 \
   bash tools/start_goai.sh stack_bowls_random
 ```
 
-The script does not download the large Xiaomi base model or Qwen3-VL processor; those must already exist locally. Run `bash tools/start_goai.sh --help` to see all options.
+The script does not download the large Xiaomi base model or Qwen3-VL processor; those must already exist locally. Relative paths are resolved from the repository root, so the command can be launched from any current working directory. Run `bash tools/start_goai.sh --help` to see all options.
+
+### Batch inference
+
+The Xiaomi adapter exposes a real batched path. Send a list of decoded observations to `update_obs_batch`, then call `get_action_batch` with the environment-index list as its `obs` payload:
+
+```python
+model_client.call(func_name="update_obs_batch", obs=obs_list)
+actions = model_client.call(
+    func_name="get_action_batch", obs=[0, 1, 2, 3]
+)
+```
+
+`obs_list` and the index list must have the same order. `actions[i]` is the 10-step action chunk for `obs_list[i]`. The server now tokenizes the list together and invokes `model.generate` once for the batch; use a smaller batch size if GPU memory is limited.
 
 ### 4. Start one task-specific policy server manually
 
