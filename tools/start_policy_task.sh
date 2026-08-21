@@ -8,9 +8,21 @@ PORT=${4:-6000}
 GPU=${5:-0}
 
 REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-PYTHON=${GOAI_PYTHON:-python}
-BASE_MODEL=${GOAI_BASE_MODEL:?set GOAI_BASE_MODEL to the Xiaomi base model directory}
-PROCESSOR=${GOAI_PROCESSOR:?set GOAI_PROCESSOR to the Qwen3-VL processor directory}
+PYTHON=${GOAI_PYTHON:-python3}
+DEFAULT_BASE_MODEL="checkpoints/Xiaomi_Robotics_1/ckpt/RoboDojo/Xiaomi_Robotics_1/RoboDojo-sim-arx_x5-ee-0"
+DEFAULT_PROCESSOR="models/qwen3-vl-4b"
+
+resolve_repo_path() {
+  local value="$1"
+  if [[ "$value" = /* ]]; then
+    printf '%s\n' "$value"
+  else
+    printf '%s/%s\n' "$REPO_ROOT" "$value"
+  fi
+}
+
+BASE_MODEL="$(resolve_repo_path "${GOAI_BASE_MODEL:-$DEFAULT_BASE_MODEL}")"
+PROCESSOR="$(resolve_repo_path "${GOAI_PROCESSOR:-$DEFAULT_PROCESSOR}")"
 
 export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/XPolicyLab/policy/Xiaomi_Robotics_1/xiaomi_robotics_1:${PYTHONPATH:-}"
 export CUDA_VISIBLE_DEVICES="${GPU}"

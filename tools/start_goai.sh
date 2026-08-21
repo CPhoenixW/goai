@@ -11,9 +11,12 @@ DEFAULT_BANK="isolated.pt"
 DEFAULT_BANK_SHA="7daf3f9f9f0542b55caaa255b3c83fc52433b0cf2c22f96a901c5d771e10dca2"
 DEFAULT_COMPOSITE="composite.pt"
 DEFAULT_COMPOSITE_SHA="f2b94cf1872885bcc3fb9d501b1949e03bbdfbb7c1e7feb047d99e1c4d51cfb3"
-DEFAULT_PYTHON="/root/autodl-tmp/xiaomi-mibot/bin/python"
-DEFAULT_BASE_MODEL="/root/autodl-tmp/goai-residual-migration-20260818/exact_base/RoboDojo-sim-arx_x5-ee-0"
-DEFAULT_PROCESSOR="/root/autodl-tmp/qwen3-vl-4b"
+# Defaults are repo-relative so the checkout is portable across machines.
+# GOAI_BASE_MODEL / GOAI_PROCESSOR may still be absolute paths when artifacts
+# live outside the checkout.
+DEFAULT_PYTHON="/usr/bin/python3"
+DEFAULT_BASE_MODEL="checkpoints/Xiaomi_Robotics_1/ckpt/RoboDojo/Xiaomi_Robotics_1/RoboDojo-sim-arx_x5-ee-0"
+DEFAULT_PROCESSOR="models/qwen3-vl-4b"
 
 usage() {
   cat <<'EOF'
@@ -72,8 +75,20 @@ esac
 
 CHECKPOINT_PATH="${GOAI_CHECKPOINT_PATH:-$REPO_ROOT/checkpoints/$CHECKPOINT_NAME}"
 PYTHON="${GOAI_PYTHON:-$DEFAULT_PYTHON}"
-BASE_MODEL="${GOAI_BASE_MODEL:-$DEFAULT_BASE_MODEL}"
-PROCESSOR="${GOAI_PROCESSOR:-$DEFAULT_PROCESSOR}"
+BASE_MODEL_INPUT="${GOAI_BASE_MODEL:-$DEFAULT_BASE_MODEL}"
+PROCESSOR_INPUT="${GOAI_PROCESSOR:-$DEFAULT_PROCESSOR}"
+
+resolve_repo_path() {
+  local value="$1"
+  if [[ "$value" = /* ]]; then
+    printf '%s\n' "$value"
+  else
+    printf '%s/%s\n' "$REPO_ROOT" "$value"
+  fi
+}
+
+BASE_MODEL="$(resolve_repo_path "$BASE_MODEL_INPUT")"
+PROCESSOR="$(resolve_repo_path "$PROCESSOR_INPUT")"
 
 [[ -x "$PYTHON" ]] || die "Python executable not found or not executable: $PYTHON (set GOAI_PYTHON)"
 [[ -d "$BASE_MODEL" ]] || die "Xiaomi base model directory not found: $BASE_MODEL (set GOAI_BASE_MODEL)"

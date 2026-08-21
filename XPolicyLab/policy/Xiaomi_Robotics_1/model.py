@@ -614,7 +614,8 @@ class Model(ModelTemplate):
         self, encoded_obs_list: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """Build a batched model input from a list of encoded observations."""
-        batch_size = len(encoded_obs_list)
+        if not encoded_obs_list:
+            raise ValueError("cannot build an empty inference batch")
 
         # Tokenize all messages as a batch with padding
         all_messages = [item["messages"] for item in encoded_obs_list]
@@ -634,9 +635,28 @@ class Model(ModelTemplate):
         batch["state"] = states
 
         # action_vlm_condition_segments [B, 2]
+        # Qwen processors normally right-pad, but honor left-padding too. The
+        # custom XR1 VLM consumes absolute sequence offsets when it extracts
+        # the vision/instruction KV segment for each batch item.
+        attention_mask = batch.get("attention_mask")
+        if attention_mask is not None:
+            sequence_length = attention_mask.shape[1]
+            unpadded_lengths = attention_mask.to(dtype=torch.int64).sum(dim=1)
+            left_padding = sequence_length - unpadded_lengths
+            segments = [
+                [
+                    int(left_padding[index].item()),
+                    int(left_padding[index].item()) + item["action_condition_length"],
+                ]
+                for index, item in enumerate(encoded_obs_list)
+            ]
+        else:
+            segments = [
+                [0, item["action_condition_length"]]
+                for item in encoded_obs_list
+            ]
         batch["action_vlm_condition_segments"] = torch.tensor(
-            [[0, item["action_condition_length"]] for item in encoded_obs_list],
-            dtype=torch.int64,
+            segments, dtype=torch.int64
         )
 
         # Metadata
@@ -894,20 +914,24 @@ class Model(ModelTemplate):
             raise AssertionError(
                 "[Xiaomi_Robotics_1] Call update_obs_batch before get_action_batch."
             )
-        return [
-            self._predict_action_chunk(encoded_obs)
-            for encoded_obs in self._encoded_obs_list
-        ]
+        return self._predict_action_chunks(self._encoded_obs_list)
 
     def _predict_action_chunk(
         self, encoded_obs: dict[str, Any]
     ) -> list[dict[str, np.ndarray]]:
         """Run inference on a single encoded observation."""
-        batch_data = self._build_batch([encoded_obs])
-        raw_actions = self._run_inference_batch(batch_data)  # [1, T, 16]
-        return self._actions_to_xpl_format(
-            raw_actions[0], encoded_obs["current_state"]
-        )
+        return self._predict_action_chunks([encoded_obs])[0]
+
+    def _predict_action_chunks(
+        self, encoded_obs_list: list[dict[str, Any]]
+    ) -> list[list[dict[str, np.ndarray]]]:
+        """Run one model.generate call for all observations in the batch."""
+        batch_data = self._build_batch(encoded_obs_list)
+        raw_actions = self._run_inference_batch(batch_data)
+        return [
+            self._actions_to_xpl_format(raw, encoded["current_state"])
+            for raw, encoded in zip(raw_actions, encoded_obs_list)
+        ]
 
     def get_action_bundle(self, request=None):
         """Return raw and decoded actions for an auditable residual cache.
@@ -958,9 +982,23 @@ class Model(ModelTemplate):
             seeds = [None] * len(self._encoded_obs_list)
         if len(seeds) != len(self._encoded_obs_list):
             raise ValueError("inference_seeds must match encoded batch length")
+        if all(seed is None for seed in seeds):
+            raw_actions_pre_safety_batch = self._run_inference_batch(
+                self._build_batch(self._encoded_obs_list)
+            )
+            seeded_results = zip(
+                self._encoded_obs_list,
+                raw_actions_pre_safety_batch,
+                seeds,
+            )
+        else:
+            seeded_results = (
+                (encoded_obs, *self._inference_with_seed(encoded_obs, seed))
+                for encoded_obs, seed in zip(self._encoded_obs_list, seeds)
+            )
+
         bundles = []
-        for encoded_obs, seed in zip(self._encoded_obs_list, seeds):
-            raw_actions_pre_safety, effective_seed = self._inference_with_seed(encoded_obs, seed)
+        for encoded_obs, raw_actions_pre_safety, effective_seed in seeded_results:
             raw_actions = self._apply_action_safety(raw_actions_pre_safety)
             self._base_action_chunks[int(encoded_obs["env_key"])] = raw_actions.copy()
             decoded_actions = self._actions_to_xpl_format(

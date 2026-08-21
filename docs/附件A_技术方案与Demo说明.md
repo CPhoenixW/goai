@@ -55,10 +55,12 @@ RoboDojo observation
 准备 Xiaomi 推理环境、基础模型目录和 Qwen3-VL processor：
 
 ```bash
-export GOAI_PYTHON=/path/to/xiaomi-mibot/bin/python
-export GOAI_BASE_MODEL=/path/to/RoboDojo-sim-arx_x5-ee-0
-export GOAI_PROCESSOR=/path/to/qwen3-vl-4b
+export GOAI_PYTHON=/usr/bin/python3
+export GOAI_BASE_MODEL=checkpoints/Xiaomi_Robotics_1/ckpt/RoboDojo/Xiaomi_Robotics_1/RoboDojo-sim-arx_x5-ee-0
+export GOAI_PROCESSOR=models/qwen3-vl-4b
 ```
+
+启动脚本会把相对路径解析到仓库根目录，不要求从固定工作目录执行；不创建 virtualenv 或 conda 环境。批量推理时，客户端先调用 `update_obs_batch(obs_list)`，再调用 `get_action_batch(env_idx_list)`，返回与输入顺序对应的 10 步动作 chunk 列表。
 
 一键启动并校验 `isolated.pt`：
 
